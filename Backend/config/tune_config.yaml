@@ -1,0 +1,86 @@
+# ============================================
+# Churn Model Tuning Pipeline Configuration
+# ============================================
+
+project:
+  name: "churn_prediction"
+  version: "2.0.1"
+  random_seed: 42
+
+database:
+  url: ${DATABASE_URL}
+  table: "customer_features"
+
+target:
+  conditions:
+    - column: "days_since_last_login"
+      operator: ">"
+      threshold: 20
+    - column: "login_count_7d"
+      operator: "=="
+      value: 0
+    - column: "failed_login_attempts"
+      operator: ">="
+      threshold: 3
+  aggregation: "any"
+
+data_split:
+  test_size: 0.2
+  stratify: true
+  validation: 0.2   # used for neural network
+
+tuning:
+  n_trials: 150
+  direction: "maximize"
+  metric: "roc_auc"
+  cross_validation:
+    folds: 3
+    shuffle: true
+
+mlflow:
+  tracking_uri: "http://localhost:5000"
+  experiment_name: "churn_multimodel_tuning"
+
+models:
+  - name: "xgboost"
+    enabled: true
+    param_prefix: ""
+    hyperparameters:
+      n_estimators: { type: "int", low: 100, high: 500 }
+      max_depth: { type: "int", low: 3, high: 10 }
+      learning_rate: { type: "float", low: 0.01, high: 0.3, log: true }
+      subsample: { type: "float", low: 0.5, high: 1.0 }
+      colsample_bytree: { type: "float", low: 0.4, high: 1.0 }
+
+  - name: "svm"
+    enabled: true
+    param_prefix: "sv_"
+    hyperparameters:
+      C: { type: "float", low: 0.1, high: 10.0, log: true }
+      kernel: { type: "categorical", choices: ["linear", "rbf"] }
+
+  - name: "sgd"
+    enabled: true
+    param_prefix: "sgd_"
+    hyperparameters:
+      alpha: { type: "float", low: 1e-5, high: 1e-1, log: true }
+
+  - name: "knn"
+    enabled: true
+    param_prefix: "knn_"
+    hyperparameters:
+      n_neighbors: { type: "int", low: 3, high: 15 }
+      weights: { type: "categorical", choices: ["uniform", "distance"] }
+
+  - name: "neural_network"
+    enabled: true
+    param_prefix: "nn_"
+    hyperparameters:
+      hidden_layers: { type: "categorical", choices: [[64, 32], [128, 64], [256, 128, 64]] }
+      optimizer: { type: "categorical", choices: ["adam", "sgd"] }
+      epochs: { type: "int", low: 10, high: 50 }
+      batch_size: { type: "int", low: 16, high: 128, log: true }
+
+output:
+  model_path: "best_model"
+  mlflow_artifact: "models/churn"

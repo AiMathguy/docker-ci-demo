@@ -1,0 +1,80 @@
+# features.yaml
+# Configuration for the customer churn feature + labeling pipeline.
+# Externalizes the values currently hardcoded in DataIngestor so the
+# thresholds and column lists live in one place.
+
+data:
+  output_dir: backend/data
+  chunksize: 5000            # rows per chunk in _export_table
+  tables:
+    users: users
+    features: customer_features
+    predictions: customer_predictions
+
+# How master_customer_data.csv is assembled in build_master_df / export_all
+master:
+  output_file: master_customer_data.csv
+  join:
+    users_key: id
+    features_key: user_id
+    predictions_key: user_id
+    how: left
+    pred_suffix: _pred       # suffix applied to overlapping prediction columns
+
+# Feature columns consumed downstream by the churn model
+features:
+  - is_verified
+  - days_since_last_login
+  - login_count_7d
+  - failed_login_attempts
+  - has_active_subscription
+
+target:
+  name: churn_label
+  # Preferred path: if churn_probability exists, threshold it directly.
+  probability_column: churn_probability
+  probability_threshold: 0.5   # churn_label = 1 when prob >= this
+
+# Fallback rule-based labeling, used only when churn_probability is absent.
+# Each condition that evaluates true adds 1 to churn_score.
+churn_rules:
+  score_threshold: 3           # churn_label = 1 when churn_score >= this
+  conditions:
+    not_verified:
+      column: is_verified
+      op: eq
+      value: 0
+    inactive_60d:
+      column: days_since_last_login
+      op: gt
+      value: 60
+      fillna: 999
+    no_recent_logins:
+      column: login_count_7d
+      op: eq
+      value: 0
+      fillna: 0
+    many_failed_logins:
+      column: failed_login_attempts
+      op: gte
+      value: 3
+    no_active_subscription:
+      column: has_active_subscription
+      op: eq
+      value: 0
+
+# Columns that MUST be present to derive churn_label via the rules above.
+# Note: has_active_subscription is intentionally excluded here because it is
+# guaranteed by the `derived` block below before the rules run.
+required_columns:
+  - is_verified
+  - days_since_last_login
+  - login_count_7d
+  - failed_login_attempts
+
+# Derived columns computed during load when missing.
+derived:
+  has_active_subscription:
+    from_column: churned      # 1 when churned == 0, else 0
+    equals: 0
+    default: 0                # used when neither column is present

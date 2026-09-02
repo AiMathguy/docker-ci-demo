@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+mlruns/
+mlartifacts/
+best_model/
+data/
+notebooks/
+*.log
+*.csv
+.venv/
+venv/
+*.joblib
+*.pkl
+mlflow.db
+.env
+"__pycache__/`n*.pyc`nmlruns/`nmlartifacts/`nbest_model/`ndata/`nnotebooks/`n*.log`n*.csv`n.venv/`nvenv/`n*.joblib`n*.pkl`nmlflow.db`n.env" | Out-File -FilePath .gitignore -Encoding ascii
