@@ -19,9 +19,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
+
 import yaml
 import joblib
+import uvicorn
 import pandas as pd
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 

@@ -1,0 +1,4 @@
+-r requirements-ci.txt
+mlflow==2.13.0
+optuna==3.6.1
+shap==0.45.1

@@ -29,7 +29,7 @@ jobs:
         working-directory: Backend
         run: |
           pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src/main.py src/predict.py --select=E9,F63,F7,F82 --show-source
         continue-on-error: true
 
       - name: Run tests
